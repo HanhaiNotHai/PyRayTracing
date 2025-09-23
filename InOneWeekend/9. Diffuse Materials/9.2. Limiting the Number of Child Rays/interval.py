@@ -1,0 +1,33 @@
+from __future__ import annotations
+
+import math
+
+
+class Interval:
+
+    empty: Interval
+    universe: Interval
+
+    def __init__(self, min_val: float = math.inf, max_val: float = -math.inf):
+        self.min = min_val
+        self.max = max_val
+
+    def size(self) -> float:
+        return self.max - self.min
+
+    def contains(self, x: float) -> bool:
+        return self.min <= x <= self.max
+
+    def surrounds(self, x: float) -> bool:
+        return self.min < x < self.max
+
+    def clamp(self, x: float) -> float:
+        if x < self.min:
+            return self.min
+        if x > self.max:
+            return self.max
+        return x
+
+
+Interval.empty = Interval(math.inf, -math.inf)
+Interval.universe = Interval(-math.inf, math.inf)
