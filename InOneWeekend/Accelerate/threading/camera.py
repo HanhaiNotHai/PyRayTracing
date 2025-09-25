@@ -150,7 +150,7 @@ class Camera:
         task_queue: queue.Queue[tuple[int, int]] = queue.Queue()
         result_queue: queue.Queue[tuple[int, int, Color]] = queue.Queue()
 
-        def worker():
+        def renderer():
             while True:
                 try:
                     j, i = task_queue.get(timeout=1)
@@ -189,7 +189,7 @@ class Camera:
             for i in range(self.image_width):
                 task_queue.put((j, i))
 
-        threads = [threading.Thread(target=worker, daemon=True) for _ in range(num_threads)]
+        threads = [threading.Thread(target=renderer, daemon=True) for _ in range(num_threads)]
         start_perf_counter_ns = time.perf_counter_ns()
         for thread in threads:
             thread.start()
