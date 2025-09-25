@@ -1,4 +1,6 @@
 import random
+import sys
+from pathlib import Path
 
 from camera import Camera
 from color import Color
@@ -9,6 +11,14 @@ from vector import Point3, Vector3
 
 
 def main():
+    if len(sys.argv) == 1:
+        image_file = Path('image.ppm')
+    elif len(sys.argv) == 2:
+        image_file = Path(sys.argv[1])
+    else:
+        print('Help: python main.py image.ppm')
+        return
+
     world = HittableList()
 
     ground_material = Lambertian(Color(0.5, 0.5, 0.5))
@@ -58,7 +68,7 @@ def main():
         focus_dist=10,
     )
 
-    cam.render_threading(world, num_threads=8)
+    cam.render_threading(world, image_file, num_threads=8)
 
 
 if __name__ == '__main__':

@@ -1,3 +1,4 @@
+import io
 import math
 
 from interval import Interval
@@ -12,7 +13,7 @@ def linear_to_gamma(linear_component: float) -> float:
     return 0
 
 
-def write_color(pixel_color: Color):
+def write_color(pixel_color: Color, f: io.TextIOWrapper):
     r = pixel_color.x
     g = pixel_color.y
     b = pixel_color.z
@@ -29,4 +30,4 @@ def write_color(pixel_color: Color):
     bbyte = int(255.999 * intensity.clamp(b))
 
     # Write out the pixel color components.
-    print(f"{rbyte} {gbyte} {bbyte}")
+    f.write(f'{rbyte} {gbyte} {bbyte}\n')
