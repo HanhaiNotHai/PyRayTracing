@@ -3,6 +3,7 @@ import math
 import queue
 import random
 import threading
+import time
 
 from color import Color, write_color
 from hittable import HitRecord, Hittable
@@ -141,7 +142,7 @@ class Camera:
         logging.info('Done.')
 
     def render_threading(self, world: Hittable, num_threads: int = 4):
-        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.INFO)
 
         task_queue: queue.Queue[tuple[int, int]] = queue.Queue()
         result_queue: queue.Queue[tuple[int, int, Color]] = queue.Queue()
@@ -153,7 +154,26 @@ class Camera:
                 except queue.Empty:
                     break
                 if i == 0:
-                    logging.info('Scanlines remaining: %d', self.image_height - j)
+                    if j == 0:
+                        logging.info('Scanlines remaining: %d', self.image_height - j)
+                    else:
+                        current_perf_counter_ns = time.perf_counter_ns()
+                        elapsed_perf_counter_ns = current_perf_counter_ns - start_perf_counter_ns
+                        elapsed_s = elapsed_perf_counter_ns / 1e9
+                        s_per_line = elapsed_s / j
+                        total_s = s_per_line * self.image_height
+                        left_s = total_s - elapsed_s
+                        logging.info(
+                            'Scanlines remaining: %d, %02d:%02d < %02d:%02d < %02d:%02d, %.2fs/line',
+                            self.image_height - j,
+                            elapsed_s // 60,
+                            elapsed_s % 60,
+                            left_s // 60,
+                            left_s % 60,
+                            total_s // 60,
+                            total_s % 60,
+                            s_per_line,
+                        )
                 pixel_color = Color(0, 0, 0)
                 for _ in range(self.samples_per_pixel):
                     r = self.get_ray(i, j)
@@ -167,6 +187,7 @@ class Camera:
                 task_queue.put((j, i))
 
         threads = [threading.Thread(target=worker, daemon=True) for _ in range(num_threads)]
+        start_perf_counter_ns = time.perf_counter_ns()
         for thread in threads:
             thread.start()
 
@@ -185,4 +206,7 @@ class Camera:
         for *_, pixel_color in j_i_pixel_colors:
             write_color(pixel_color)
 
-        logging.info('Done.')
+        current_perf_counter_ns = time.perf_counter_ns()
+        total_perf_counter_ns = current_perf_counter_ns - start_perf_counter_ns
+        total_s = total_perf_counter_ns / 1e9
+        logging.info('Done. %02d:%02d', total_s // 60, total_s % 60)
