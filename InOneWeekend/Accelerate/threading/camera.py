@@ -4,6 +4,7 @@ import queue
 import random
 import threading
 import time
+from pathlib import Path
 
 from color import Color, write_color
 from hittable import HitRecord, Hittable
@@ -123,12 +124,11 @@ class Camera:
         a = 0.5 * (unit_direction.y + 1)
         return (1 - a) * Color(1, 1, 1) + a * Color(0.5, 0.7, 1)
 
-    def render(self, world: Hittable):
+    def render(self, world: Hittable, image_file: Path = Path('image.ppm')):
         logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
-        print('P3')
-        print(f'{self.image_width} {self.image_height}')
-        print('255')
+        f = image_file.open('w')
+        f.write(f'P3\n{self.image_width} {self.image_height}\n255\n')
 
         for j in range(self.image_height):
             logging.info('Scanlines remaining: %d', self.image_height - j)
@@ -137,11 +137,14 @@ class Camera:
                 for _ in range(self.samples_per_pixel):
                     r = self.get_ray(i, j)
                     pixel_color += self.ray_color(r, self.max_depth, world)
-                write_color(pixel_color * self.pixel_samples_scale)
+                write_color(pixel_color * self.pixel_samples_scale, f)
 
+        f.close()
         logging.info('Done.')
 
-    def render_threading(self, world: Hittable, num_threads: int = 4):
+    def render_threading(
+        self, world: Hittable, image_file: Path = Path('image.ppm'), num_threads: int = 4
+    ):
         logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.INFO)
 
         task_queue: queue.Queue[tuple[int, int]] = queue.Queue()
@@ -200,11 +203,10 @@ class Camera:
             j_i_pixel_colors.append(result_queue.get())
         j_i_pixel_colors.sort()
 
-        print('P3')
-        print(f'{self.image_width} {self.image_height}')
-        print('255')
-        for *_, pixel_color in j_i_pixel_colors:
-            write_color(pixel_color)
+        with image_file.open('w') as f:
+            f.write(f'P3\n{self.image_width} {self.image_height}\n255\n')
+            for *_, pixel_color in j_i_pixel_colors:
+                write_color(pixel_color, f)
 
         current_perf_counter_ns = time.perf_counter_ns()
         total_perf_counter_ns = current_perf_counter_ns - start_perf_counter_ns
