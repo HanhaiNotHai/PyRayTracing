@@ -124,6 +124,14 @@ class Camera:
         a = 0.5 * (unit_direction.y + 1)
         return (1 - a) * Color(1, 1, 1) + a * Color(0.5, 0.7, 1)
 
+    def render_pixel(self, i: int, j: int, world: Hittable) -> Color:
+        pixel_color = Color(0, 0, 0)
+        for _ in range(self.samples_per_pixel):
+            r = self.get_ray(i, j)
+            pixel_color += self.ray_color(r, self.max_depth, world)
+        pixel_color *= self.pixel_samples_scale
+        return pixel_color
+
     def render(self, world: Hittable, image_file: Path = Path('image.ppm')):
         logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
@@ -133,11 +141,8 @@ class Camera:
         for j in range(self.image_height):
             logging.info('Scanlines remaining: %d', self.image_height - j)
             for i in range(self.image_width):
-                pixel_color = Color(0, 0, 0)
-                for _ in range(self.samples_per_pixel):
-                    r = self.get_ray(i, j)
-                    pixel_color += self.ray_color(r, self.max_depth, world)
-                write_color(pixel_color * self.pixel_samples_scale, f)
+                pixel_color = self.render_pixel(i, j, world)
+                write_color(pixel_color, f)
 
         f.close()
         logging.info('Done.')
@@ -177,11 +182,7 @@ class Camera:
                             total_s % 60,
                             s_per_line,
                         )
-                pixel_color = Color(0, 0, 0)
-                for _ in range(self.samples_per_pixel):
-                    r = self.get_ray(i, j)
-                    pixel_color += self.ray_color(r, self.max_depth, world)
-                pixel_color *= self.pixel_samples_scale
+                pixel_color = self.render_pixel(i, j, world)
                 result_queue.put((j, i, pixel_color))
                 task_queue.task_done()
 
