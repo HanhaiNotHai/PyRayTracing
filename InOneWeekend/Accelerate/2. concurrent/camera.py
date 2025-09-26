@@ -82,6 +82,7 @@ class Camera:
         self.defocus_disk_u = self.u * defocus_radius  # Defocus disk horizontal radius
         self.defocus_disk_v = self.v * defocus_radius  # Defocus disk vertical radius
 
+        self.ppm_header = f'P3\n{self.image_width} {self.image_height}\n255\n'
         self.start_perf_counter_ns = time.perf_counter_ns()
 
     def sample_square(self) -> Vector3:
@@ -169,7 +170,7 @@ class Camera:
 
     def render(self, world: Hittable, image_file: Path = Path('image.ppm')):
         f = image_file.open('w')
-        f.write(f'P3\n{self.image_width} {self.image_height}\n255\n')
+        f.write(self.ppm_header)
 
         self.start_perf_counter_ns = time.perf_counter_ns()
         for j in range(self.image_height):
@@ -214,7 +215,7 @@ class Camera:
         j_i_pixel_colors.sort()
 
         with image_file.open('w') as f:
-            f.write(f'P3\n{self.image_width} {self.image_height}\n255\n')
+            f.write(self.ppm_header)
             for *_, pixel_color in j_i_pixel_colors:
                 write_color(pixel_color, f)
 
@@ -236,7 +237,7 @@ class Camera:
 
         j_i_pixel_colors.sort()
         with image_file.open('w') as f:
-            f.write(f'P3\n{self.image_width} {self.image_height}\n255\n')
+            f.write(self.ppm_header)
             for *_, pixel_color in j_i_pixel_colors:
                 write_color(pixel_color, f)
 
