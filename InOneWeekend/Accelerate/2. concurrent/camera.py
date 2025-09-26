@@ -82,6 +82,8 @@ class Camera:
         self.defocus_disk_u = self.u * defocus_radius  # Defocus disk horizontal radius
         self.defocus_disk_v = self.v * defocus_radius  # Defocus disk vertical radius
 
+        self.start_perf_counter_ns = time.perf_counter_ns()
+
     def sample_square(self) -> Vector3:
         '''Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.'''
         return Vector3((random.random() - 0.5), (random.random() - 0.5), 0)
