@@ -1,3 +1,4 @@
+import logging
 import random
 import sys
 from pathlib import Path
@@ -18,6 +19,8 @@ def main():
     else:
         print('Help: python main.py image.ppm')
         return
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.INFO)
 
     world = HittableList()
 
