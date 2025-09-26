@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
 
 from interval import Interval
+from material import Material
 from ray import Ray
 from vector import Point3, Vector3, dot
-
-if TYPE_CHECKING:
-    from material import Material
 
 
 class HitRecord:
@@ -21,8 +18,6 @@ class HitRecord:
         t: float | None = None,
         front_face: bool | None = None,
     ):
-        from material import Material
-
         self.p = p if p is not None else Point3()
         self.normal = normal if normal is not None else Vector3()
         self.mat = mat if mat is not None else Material()

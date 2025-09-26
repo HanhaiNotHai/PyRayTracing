@@ -5,7 +5,6 @@ import random
 from typing import TYPE_CHECKING
 
 from color import Color
-from hittable import HitRecord
 from ray import Ray
 from vector import dot, random_unit_vector, reflect, refract, unit_vector
 
