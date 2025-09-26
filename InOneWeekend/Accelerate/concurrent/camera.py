@@ -1,3 +1,4 @@
+import concurrent.futures
 import logging
 import math
 import queue
@@ -124,13 +125,14 @@ class Camera:
         a = 0.5 * (unit_direction.y + 1)
         return (1 - a) * Color(1, 1, 1) + a * Color(0.5, 0.7, 1)
 
-    def render_pixel(self, i: int, j: int, world: Hittable) -> Color:
+    def render_pixel(self, i: int, j: int, world: Hittable) -> tuple[int, int, Color]:
+        self.log_pixel(i, j)
         pixel_color = Color(0, 0, 0)
         for _ in range(self.samples_per_pixel):
             r = self.get_ray(i, j)
             pixel_color += self.ray_color(r, self.max_depth, world)
         pixel_color *= self.pixel_samples_scale
-        return pixel_color
+        return j, i, pixel_color
 
     def log_pixel(self, i: int, j: int):
         if i == 0:
@@ -168,8 +170,7 @@ class Camera:
         self.start_perf_counter_ns = time.perf_counter_ns()
         for j in range(self.image_height):
             for i in range(self.image_width):
-                self.log_pixel(i, j)
-                pixel_color = self.render_pixel(i, j, world)
+                *_, pixel_color = self.render_pixel(i, j, world)
                 write_color(pixel_color, f)
 
         f.close()
@@ -187,9 +188,7 @@ class Camera:
                     j, i = task_queue.get(timeout=1)
                 except queue.Empty:
                     break
-                self.log_pixel(i, j)
-                pixel_color = self.render_pixel(i, j, world)
-                result_queue.put((j, i, pixel_color))
+                result_queue.put(self.render_pixel(i, j, world))
                 task_queue.task_done()
 
         for j in range(self.image_height):
@@ -210,6 +209,28 @@ class Camera:
             j_i_pixel_colors.append(result_queue.get())
         j_i_pixel_colors.sort()
 
+        with image_file.open('w') as f:
+            f.write(f'P3\n{self.image_width} {self.image_height}\n255\n')
+            for *_, pixel_color in j_i_pixel_colors:
+                write_color(pixel_color, f)
+
+        self.log_done()
+
+    def render_concurrent(
+        self, world: Hittable, image_file: Path = Path('image.ppm'), max_workers: int | None = None
+    ):
+        self.start_perf_counter_ns = time.perf_counter_ns()
+        with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
+            futures = [
+                executor.submit(self.render_pixel, i, j, world)
+                for j in range(self.image_height)
+                for i in range(self.image_width)
+            ]
+            j_i_pixel_colors = [
+                future.result() for future in concurrent.futures.as_completed(futures)
+            ]
+
+        j_i_pixel_colors.sort()
         with image_file.open('w') as f:
             f.write(f'P3\n{self.image_width} {self.image_height}\n255\n')
             for *_, pixel_color in j_i_pixel_colors:

@@ -71,7 +71,7 @@ def main():
         focus_dist=10,
     )
 
-    cam.render_threading(world, image_file, num_threads=8)
+    cam.render_concurrent(world, image_file, max_workers=8)
 
 
 if __name__ == '__main__':
