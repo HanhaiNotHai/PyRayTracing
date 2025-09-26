@@ -169,7 +169,7 @@ class Camera:
         logging.info('Done. %02d:%02d', total_s // 60, total_s % 60)
 
     def render(self, world: Hittable, image_file: Path = Path('image.ppm')):
-        f = image_file.open('w')
+        f = image_file.open('w', encoding='UTF-8')
         f.write(self.ppm_header)
 
         self.start_perf_counter_ns = time.perf_counter_ns()
@@ -214,7 +214,7 @@ class Camera:
             j_i_pixel_colors.append(result_queue.get())
         j_i_pixel_colors.sort()
 
-        with image_file.open('w') as f:
+        with image_file.open('w', encoding='UTF-8') as f:
             f.write(self.ppm_header)
             for *_, pixel_color in j_i_pixel_colors:
                 write_color(pixel_color, f)
@@ -236,7 +236,7 @@ class Camera:
             ]
 
         j_i_pixel_colors.sort()
-        with image_file.open('w') as f:
+        with image_file.open('w', encoding='UTF-8') as f:
             f.write(self.ppm_header)
             for *_, pixel_color in j_i_pixel_colors:
                 write_color(pixel_color, f)
