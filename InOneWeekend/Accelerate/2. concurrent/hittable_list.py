@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from hittable import HitRecord, Hittable
 from interval import Interval
 from ray import Ray

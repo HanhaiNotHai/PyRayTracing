@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from vector import Point3, Vector3
 
 
