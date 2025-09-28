@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+from numba import njit
 
 from color import Color, write_color
 from hittable import HitRecord, Hittable
@@ -16,6 +17,17 @@ from ray import Ray
 from vector import Point3, Vector3, cross, random_in_unit_disk, unit_vector
 
 RNG = np.random.default_rng()
+
+
+@njit
+def _background_color_optimized(unit_direction: np.ndarray) -> tuple[float, float, float]:
+    """Optimized background color calculation"""
+    a = 0.5 * (unit_direction[1] + 1.0)
+    # Linear interpolation between white and blue
+    r = (1.0 - a) * 1.0 + a * 0.5
+    g = (1.0 - a) * 1.0 + a * 0.7
+    b = (1.0 - a) * 1.0 + a * 1.0
+    return r, g, b
 
 
 class Camera:
@@ -130,8 +142,8 @@ class Camera:
             return Color(0, 0, 0)
 
         unit_direction = unit_vector(r.direction)
-        a = 0.5 * (unit_direction.y + 1)
-        return (1 - a) * Color(1, 1, 1) + a * Color(0.5, 0.7, 1)
+        r_val, g_val, b_val = _background_color_optimized(unit_direction.e)
+        return Color(r_val, g_val, b_val)
 
     def render_pixel(self, i: int, j: int, world: Hittable) -> tuple[int, int, Color]:
         self.log_pixel(i, j)

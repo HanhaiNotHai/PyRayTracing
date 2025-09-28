@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
+from numba import njit
 
 from color import Color
 from ray import Ray
@@ -12,6 +13,14 @@ if TYPE_CHECKING:
     from hittable import HitRecord
 
 RNG = np.random.default_rng()
+
+
+@njit
+def _dielectric_reflectance(cosine: float, refraction_index: float) -> float:
+    """Optimized Schlick's approximation for reflectance"""
+    r0 = (1 - refraction_index) / (1 + refraction_index)
+    r0 = r0 * r0
+    return r0 + (1 - r0) * (1 - cosine) ** 5
 
 
 class Material:
@@ -61,9 +70,7 @@ class Dielectric(Material):
     @staticmethod
     def reflectance(cosine: float, refraction_index: float) -> float:
         '''Use Schlick's approximation for reflectance.'''
-        r0 = (1 - refraction_index) / (1 + refraction_index)
-        r0 = r0 * r0
-        return r0 + (1 - r0) * (1 - cosine) ** 5
+        return _dielectric_reflectance(cosine, refraction_index)
 
     def scatter(self, r_in: Ray, rec: HitRecord, attenuation: Color, scattered: Ray) -> bool:
         attenuation.set(1, 1, 1)
