@@ -97,14 +97,13 @@ class Vector3:
 
     @staticmethod
     def random(min_val: float | None = None, max_val: float | None = None) -> Vector3:
-        assert min_val is None and max_val is None or min_val is not None and max_val is not None
-        if isinstance(min_val, float) and isinstance(max_val, float):
-            return Vector3(
-                random.uniform(min_val, max_val),
-                random.uniform(min_val, max_val),
-                random.uniform(min_val, max_val),
-            )
-        return Vector3(random.random(), random.random(), random.random())
+        if min_val is None and max_val is None:
+            return Vector3(random.random(), random.random(), random.random())
+        return Vector3(
+            random.uniform(min_val, max_val),
+            random.uniform(min_val, max_val),
+            random.uniform(min_val, max_val),
+        )
 
     def near_zero(self) -> bool:
         '''Return True if the vector is close to zero in all dimensions.'''
