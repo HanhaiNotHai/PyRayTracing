@@ -5,5 +5,6 @@ description = "Python implementation of the 'Ray Tracing in One Weekend'."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "numba>=0.62.0",
     "numpy>=2.3.3",
 ]
