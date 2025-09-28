@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import math
+import numpy as np
 
 from hittable import HitRecord, Hittable
 from interval import Interval
@@ -26,7 +26,7 @@ class Sphere(Hittable):
         if discriminant < 0:
             return False
 
-        sqrtd = math.sqrt(discriminant)
+        sqrtd = np.sqrt(discriminant)
 
         # Find the nearest root that lies in the acceptable range.
         root = (h - sqrtd) / a

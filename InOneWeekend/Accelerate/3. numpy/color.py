@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import io
-import math
+
+import numpy as np
 
 from interval import Interval
 from vector import Vector3
@@ -11,7 +12,7 @@ Color = Vector3
 
 def linear_to_gamma(linear_component: float) -> float:
     if linear_component > 0:
-        return math.sqrt(linear_component)
+        return np.sqrt(linear_component)
     return 0
 
 

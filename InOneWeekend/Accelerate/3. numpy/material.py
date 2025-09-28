@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import math
-import random
 from typing import TYPE_CHECKING
+
+import numpy as np
 
 from color import Color
 from ray import Ray
@@ -10,6 +10,8 @@ from vector import dot, random_unit_vector, reflect, refract, unit_vector
 
 if TYPE_CHECKING:
     from hittable import HitRecord
+
+RNG = np.random.default_rng()
 
 
 class Material:
@@ -69,11 +71,11 @@ class Dielectric(Material):
 
         unit_direction = unit_vector(r_in.direction)
         cos_theta = min(dot(-unit_direction, rec.normal), 1)
-        sin_theta = math.sqrt(1 - cos_theta * cos_theta)
+        sin_theta = np.sqrt(1 - cos_theta * cos_theta)
 
-        cannot_refract = ri * sin_theta > 1
+        cannot_refract = (ri * sin_theta) > 1
 
-        if cannot_refract or self.reflectance(cos_theta, ri) > random.random():
+        if cannot_refract or self.reflectance(cos_theta, ri) > RNG.random():
             direction = reflect(unit_direction, rec.normal)
         else:
             direction = refract(unit_direction, rec.normal, ri)

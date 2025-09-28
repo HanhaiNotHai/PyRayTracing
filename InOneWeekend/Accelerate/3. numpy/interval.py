@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import math
+import numpy as np
 
 
 class Interval:
@@ -8,7 +8,7 @@ class Interval:
     empty: Interval
     universe: Interval
 
-    def __init__(self, min_val: float = math.inf, max_val: float = -math.inf):
+    def __init__(self, min_val: float = np.inf, max_val: float = -np.inf):
         self.min = min_val
         self.max = max_val
 
@@ -22,12 +22,8 @@ class Interval:
         return self.min < x < self.max
 
     def clamp(self, x: float) -> float:
-        if x < self.min:
-            return self.min
-        if x > self.max:
-            return self.max
-        return x
+        return np.clip(x, self.min, self.max)
 
 
-Interval.empty = Interval(math.inf, -math.inf)
-Interval.universe = Interval(-math.inf, math.inf)
+Interval.empty = Interval(np.inf, -np.inf)
+Interval.universe = Interval(-np.inf, np.inf)

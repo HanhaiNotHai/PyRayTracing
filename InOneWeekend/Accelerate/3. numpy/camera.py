@@ -2,18 +2,20 @@ from __future__ import annotations
 
 import concurrent.futures
 import logging
-import math
 import queue
-import random
 import threading
 import time
 from pathlib import Path
+
+import numpy as np
 
 from color import Color, write_color
 from hittable import HitRecord, Hittable
 from interval import Interval
 from ray import Ray
 from vector import Point3, Vector3, cross, random_in_unit_disk, unit_vector
+
+RNG = np.random.default_rng()
 
 
 class Camera:
@@ -51,8 +53,8 @@ class Camera:
         self.center = self.lookfrom  # Camera center
 
         # Determine the viewport dimensions.
-        theta = math.radians(self.vfov)
-        h = math.tan(theta / 2)
+        theta = np.radians(self.vfov)
+        h = np.tan(theta / 2)
         viewport_height = 2 * h * self.focus_dist
         viewport_width = viewport_height * self.image_width / self.image_height
 
@@ -78,7 +80,7 @@ class Camera:
         self.pixel00_loc = viewport_upper_left + 0.5 * (self.pixel_delta_u + self.pixel_delta_v)
 
         # Calculate the camera defocus disk basis vectors.
-        defocus_radius = self.focus_dist * math.tan(math.radians(self.defocus_angle / 2))
+        defocus_radius = self.focus_dist * np.tan(np.radians(self.defocus_angle / 2))
         self.defocus_disk_u = self.u * defocus_radius  # Defocus disk horizontal radius
         self.defocus_disk_v = self.v * defocus_radius  # Defocus disk vertical radius
 
@@ -87,7 +89,8 @@ class Camera:
 
     def sample_square(self) -> Vector3:
         '''Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.'''
-        return Vector3((random.random() - 0.5), (random.random() - 0.5), 0)
+        x, y = RNG.uniform(-0.5, 0.5, (2))
+        return Vector3(x, y, 0)
 
     def defocus_disk_sample(self) -> Point3:
         '''Returns a random point in the camera defocus disk.'''
@@ -119,7 +122,7 @@ class Camera:
 
         rec = HitRecord()
 
-        if world.hit(r, Interval(0.001, math.inf), rec):
+        if world.hit(r, Interval(0.001, np.inf), rec):
             scattered = Ray()
             attenuation = Color()
             if rec.mat.scatter(r, rec, attenuation, scattered):
