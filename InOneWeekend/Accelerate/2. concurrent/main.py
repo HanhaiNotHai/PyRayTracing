@@ -24,6 +24,8 @@ def main():
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.INFO)
 
+    random.seed(65712)
+
     world = HittableList()
 
     ground_material = Lambertian(Color(0.5, 0.5, 0.5))
@@ -73,7 +75,7 @@ def main():
         focus_dist=10,
     )
 
-    cam.render_concurrent(world, image_file, max_workers=8)
+    cam.render_concurrent(world, image_file, max_workers=20)
 
 
 if __name__ == '__main__':
