@@ -242,3 +242,31 @@ class Camera:
                 write_color(pixel_color, f)
 
         self.log_done()
+
+    def render_line(self, j: int, world: Hittable) -> tuple[int, list[Color]]:
+        pixel_colors = []
+        for i in range(self.image_width):
+            *_, pixel_color = self.render_pixel(i, j, world)
+            pixel_colors.append(pixel_color)
+        return j, pixel_colors
+
+    def render_by_line_concurrent(
+        self, world: Hittable, image_file: Path = Path('image.ppm'), max_workers: int | None = None
+    ):
+        self.start_perf_counter_ns = time.perf_counter_ns()
+        with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
+            futures = [
+                executor.submit(self.render_line, j, world) for j in range(self.image_height)
+            ]
+            j_pixel_colors = [
+                future.result() for future in concurrent.futures.as_completed(futures)
+            ]
+
+        j_pixel_colors.sort()
+        with image_file.open('w', encoding='UTF-8') as f:
+            f.write(self.ppm_header)
+            for *_, pixel_colors in j_pixel_colors:
+                for pixel_color in pixel_colors:
+                    write_color(pixel_color, f)
+
+        self.log_done()
