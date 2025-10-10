@@ -85,6 +85,35 @@ class Camera:
         self.ppm_header = f'P3\n{self.image_width} {self.image_height}\n255\n'
         self.start_perf_counter_ns = time.perf_counter_ns()
 
+    def log_pixel(self, i: int, j: int):
+        if i == 0:
+            if j == 0:
+                logging.info('Scanlines remaining: %d', self.image_height - j)
+            else:
+                current_perf_counter_ns = time.perf_counter_ns()
+                elapsed_perf_counter_ns = current_perf_counter_ns - self.start_perf_counter_ns
+                elapsed_s = elapsed_perf_counter_ns / 1e9
+                s_per_line = elapsed_s / j
+                total_s = s_per_line * self.image_height
+                left_s = total_s - elapsed_s
+                logging.info(
+                    'Scanlines remaining: %d, %02d:%02d < %02d:%02d < %02d:%02d, %.2fs/line',
+                    self.image_height - j,
+                    elapsed_s // 60,
+                    elapsed_s % 60,
+                    left_s // 60,
+                    left_s % 60,
+                    total_s // 60,
+                    total_s % 60,
+                    s_per_line,
+                )
+
+    def log_done(self):
+        current_perf_counter_ns = time.perf_counter_ns()
+        total_perf_counter_ns = current_perf_counter_ns - self.start_perf_counter_ns
+        total_s = total_perf_counter_ns / 1e9
+        logging.info('Done. %02d:%02d', total_s // 60, total_s % 60)
+
     def sample_square(self) -> Vector3:
         '''Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.'''
         return Vector3((random.random() - 0.5), (random.random() - 0.5), 0)
@@ -139,34 +168,12 @@ class Camera:
         pixel_color *= self.pixel_samples_scale
         return j, i, pixel_color
 
-    def log_pixel(self, i: int, j: int):
-        if i == 0:
-            if j == 0:
-                logging.info('Scanlines remaining: %d', self.image_height - j)
-            else:
-                current_perf_counter_ns = time.perf_counter_ns()
-                elapsed_perf_counter_ns = current_perf_counter_ns - self.start_perf_counter_ns
-                elapsed_s = elapsed_perf_counter_ns / 1e9
-                s_per_line = elapsed_s / j
-                total_s = s_per_line * self.image_height
-                left_s = total_s - elapsed_s
-                logging.info(
-                    'Scanlines remaining: %d, %02d:%02d < %02d:%02d < %02d:%02d, %.2fs/line',
-                    self.image_height - j,
-                    elapsed_s // 60,
-                    elapsed_s % 60,
-                    left_s // 60,
-                    left_s % 60,
-                    total_s // 60,
-                    total_s % 60,
-                    s_per_line,
-                )
-
-    def log_done(self):
-        current_perf_counter_ns = time.perf_counter_ns()
-        total_perf_counter_ns = current_perf_counter_ns - self.start_perf_counter_ns
-        total_s = total_perf_counter_ns / 1e9
-        logging.info('Done. %02d:%02d', total_s // 60, total_s % 60)
+    def render_line(self, j: int, world: Hittable) -> tuple[int, list[Color]]:
+        pixel_colors = []
+        for i in range(self.image_width):
+            *_, pixel_color = self.render_pixel(i, j, world)
+            pixel_colors.append(pixel_color)
+        return j, pixel_colors
 
     def render(self, world: Hittable, image_file: Path = Path('image.ppm')):
         f = image_file.open('w', encoding='UTF-8')
@@ -242,13 +249,6 @@ class Camera:
                 write_color(pixel_color, f)
 
         self.log_done()
-
-    def render_line(self, j: int, world: Hittable) -> tuple[int, list[Color]]:
-        pixel_colors = []
-        for i in range(self.image_width):
-            *_, pixel_color = self.render_pixel(i, j, world)
-            pixel_colors.append(pixel_color)
-        return j, pixel_colors
 
     def render_by_line_concurrent(
         self, world: Hittable, image_file: Path = Path('image.ppm'), max_workers: int | None = None
