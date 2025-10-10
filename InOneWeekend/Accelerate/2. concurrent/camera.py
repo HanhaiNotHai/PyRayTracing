@@ -84,29 +84,31 @@ class Camera:
 
         self.ppm_header = f'P3\n{self.image_width} {self.image_height}\n255\n'
         self.start_perf_counter_ns = time.perf_counter_ns()
+        self.done_lines = 0
+        self.lock_done_lines = threading.Lock()
 
-    def log_pixel(self, i: int, j: int):
-        if i == 0:
-            if j == 0:
-                logging.info('Scanlines remaining: %d', self.image_height - j)
-            else:
-                current_perf_counter_ns = time.perf_counter_ns()
-                elapsed_perf_counter_ns = current_perf_counter_ns - self.start_perf_counter_ns
-                elapsed_s = elapsed_perf_counter_ns / 1e9
-                s_per_line = elapsed_s / j
-                total_s = s_per_line * self.image_height
-                left_s = total_s - elapsed_s
-                logging.info(
-                    'Scanlines remaining: %d, %02d:%02d < %02d:%02d < %02d:%02d, %.2fs/line',
-                    self.image_height - j,
-                    elapsed_s // 60,
-                    elapsed_s % 60,
-                    left_s // 60,
-                    left_s % 60,
-                    total_s // 60,
-                    total_s % 60,
-                    s_per_line,
-                )
+    def log_pixel(self, i: int):
+        if i == self.image_width - 1:
+            with self.lock_done_lines:
+                self.done_lines += 1
+                done_lines = self.done_lines
+            current_perf_counter_ns = time.perf_counter_ns()
+            elapsed_perf_counter_ns = current_perf_counter_ns - self.start_perf_counter_ns
+            elapsed_s = elapsed_perf_counter_ns / 1e9
+            s_per_line = elapsed_s / done_lines
+            total_s = s_per_line * self.image_height
+            left_s = total_s - elapsed_s
+            logging.info(
+                'Scanlines remaining: %d, %02d:%02d < %02d:%02d < %02d:%02d, %.2fs/line',
+                self.image_height - done_lines,
+                elapsed_s // 60,
+                elapsed_s % 60,
+                left_s // 60,
+                left_s % 60,
+                total_s // 60,
+                total_s % 60,
+                s_per_line,
+            )
 
     def log_done(self):
         current_perf_counter_ns = time.perf_counter_ns()
@@ -160,12 +162,12 @@ class Camera:
         return (1 - a) * Color(1, 1, 1) + a * Color(0.5, 0.7, 1)
 
     def render_pixel(self, i: int, j: int, world: Hittable) -> tuple[int, int, Color]:
-        self.log_pixel(i, j)
         pixel_color = Color(0, 0, 0)
         for _ in range(self.samples_per_pixel):
             r = self.get_ray(i, j)
             pixel_color += self.ray_color(r, self.max_depth, world)
         pixel_color *= self.pixel_samples_scale
+        self.log_pixel(i)
         return j, i, pixel_color
 
     def render_line(self, j: int, world: Hittable) -> tuple[int, list[Color]]:
