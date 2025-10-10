@@ -9,6 +9,9 @@ import threading
 import time
 from pathlib import Path
 
+import cython
+from cython.cimports.libc.math import tan
+
 from color import Color, write_color
 from hittable import HitRecord, Hittable
 from interval import Interval
@@ -20,41 +23,42 @@ class Camera:
 
     def __init__(
         self,
-        aspect_ratio: float = 1,  # Ratio of image width over height
-        image_width: int = 100,  # Rendered image width in pixel count
-        samples_per_pixel: int = 10,  # Count of random samples for each pixel
-        max_depth: int = 10,  # Maximum number of ray bounces into scene
-        vfov: float = 90,  # Vertical view angle (field of view)
+        aspect_ratio: cython.double = 1.0,  # Ratio of image width over height
+        image_width: cython.int = 100,  # Rendered image width in pixel count
+        samples_per_pixel: cython.int = 10,  # Count of random samples for each pixel
+        max_depth: cython.int = 10,  # Maximum number of ray bounces into scene
+        vfov: cython.double = 90.0,  # Vertical view angle (field of view)
         lookfrom: Point3 | None = None,  # Point camera is looking from
         lookat: Point3 | None = None,  # Point camera is looking at
         vup: Vector3 | None = None,  # Camera-relative "up" direction
-        defocus_angle: float = 0,  # Variation angle of rays through each pixel
-        focus_dist: float = 10,  # Distance from camera lookfrom point to plane of perfect focus
+        defocus_angle: cython.double = 0.0,  # Variation angle of rays through each pixel
+        focus_dist: cython.double = 10.0,  # Distance from camera lookfrom point to plane of perfect focus
     ):
-        self.aspect_ratio = aspect_ratio
-        self.image_width = image_width
-        self.samples_per_pixel = samples_per_pixel
-        self.max_depth = max_depth
-        self.vfov = vfov
+        self.aspect_ratio: cython.double = aspect_ratio
+        self.image_width: cython.int = image_width
+        self.samples_per_pixel: cython.int = samples_per_pixel
+        self.max_depth: cython.int = max_depth
+        self.vfov: cython.double = vfov
         self.lookfrom = lookfrom if lookfrom is not None else Point3()
         self.lookat = lookat if lookat is not None else Point3()
         self.vup = vup if vup is not None else Vector3()
-        self.defocus_angle = defocus_angle
-        self.focus_dist = focus_dist
+        self.defocus_angle: cython.double = defocus_angle
+        self.focus_dist: cython.double = focus_dist
 
-        self.image_height = int(self.image_width / self.aspect_ratio)  # Rendered image height
+        # Rendered image height
+        self.image_height: cython.int = int(self.image_width / self.aspect_ratio)
         self.image_height = max(1, self.image_height)
 
         # Color scale factor for a sum of pixel samples
-        self.pixel_samples_scale = 1 / self.samples_per_pixel
+        self.pixel_samples_scale: cython.double = 1.0 / self.samples_per_pixel
 
         self.center = self.lookfrom  # Camera center
 
         # Determine the viewport dimensions.
-        theta = math.radians(self.vfov)
-        h = math.tan(theta / 2)
-        viewport_height = 2 * h * self.focus_dist
-        viewport_width = viewport_height * self.image_width / self.image_height
+        theta: cython.double = math.radians(self.vfov)
+        h: cython.double = tan(theta / 2)
+        viewport_height: cython.double = 2 * h * self.focus_dist
+        viewport_width: cython.double = viewport_height * self.image_width / self.image_height
 
         # Calculate the u,v,w unit basis vectors for the camera coordinate frame.
         # Camera frame basis vectors
@@ -78,23 +82,23 @@ class Camera:
         self.pixel00_loc = viewport_upper_left + 0.5 * (self.pixel_delta_u + self.pixel_delta_v)
 
         # Calculate the camera defocus disk basis vectors.
-        defocus_radius = self.focus_dist * math.tan(math.radians(self.defocus_angle / 2))
+        defocus_radius: cython.double = self.focus_dist * tan(math.radians(self.defocus_angle / 2))
         self.defocus_disk_u = self.u * defocus_radius  # Defocus disk horizontal radius
         self.defocus_disk_v = self.v * defocus_radius  # Defocus disk vertical radius
 
         self.ppm_header = f'P3\n{self.image_width} {self.image_height}\n255\n'
-        self.start_perf_counter_ns = time.perf_counter_ns()
+        self.start_perf_counter_ns: cython.int = time.perf_counter_ns()
 
     def sample_square(self) -> Vector3:
         '''Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.'''
-        return Vector3((random.random() - 0.5), (random.random() - 0.5), 0)
+        return Vector3((random.random() - 0.5), (random.random() - 0.5), 0.0)
 
     def defocus_disk_sample(self) -> Point3:
         '''Returns a random point in the camera defocus disk.'''
         p = random_in_unit_disk()
         return self.center + p.x * self.defocus_disk_u + p.y * self.defocus_disk_v
 
-    def get_ray(self, i: int, j: int) -> Ray:
+    def get_ray(self, i: cython.int, j: cython.int) -> Ray:
         '''
         Construct a camera ray originating from the defocus disk and
         directed at a randomly sampled point around the pixel location i, j.
@@ -107,7 +111,7 @@ class Camera:
             + (j + offset.y) * self.pixel_delta_v
         )
 
-        ray_origin = self.center if self.defocus_angle <= 0 else self.defocus_disk_sample()
+        ray_origin = self.center if self.defocus_angle <= 0.0 else self.defocus_disk_sample()
         ray_direction = pixel_sample - ray_origin
 
         return Ray(ray_origin, ray_direction)
@@ -115,7 +119,7 @@ class Camera:
     def ray_color(self, r: Ray, depth: int, world: Hittable) -> Color:
         # If we've exceeded the ray bounce limit, no more light is gathered.
         if depth <= 0:
-            return Color(0, 0, 0)
+            return Color(0.0, 0.0, 0.0)
 
         rec = HitRecord()
 
@@ -124,32 +128,34 @@ class Camera:
             attenuation = Color()
             if rec.mat.scatter(r, rec, attenuation, scattered):
                 return attenuation * self.ray_color(scattered, depth - 1, world)
-            return Color(0, 0, 0)
+            return Color(0.0, 0.0, 0.0)
 
         unit_direction = unit_vector(r.direction)
-        a = 0.5 * (unit_direction.y + 1)
-        return (1 - a) * Color(1, 1, 1) + a * Color(0.5, 0.7, 1)
+        a: cython.double = 0.5 * (unit_direction.y + 1.0)
+        return (1.0 - a) * Color(1.0, 1.0, 1.0) + a * Color(0.5, 0.7, 1.0)
 
-    def render_pixel(self, i: int, j: int, world: Hittable) -> tuple[int, int, Color]:
+    def render_pixel(
+        self, i: cython.int, j: cython.int, world: Hittable
+    ) -> tuple[cython.int, cython.int, Color]:
         self.log_pixel(i, j)
-        pixel_color = Color(0, 0, 0)
+        pixel_color = Color(0.0, 0.0, 0.0)
         for _ in range(self.samples_per_pixel):
             r = self.get_ray(i, j)
             pixel_color += self.ray_color(r, self.max_depth, world)
         pixel_color *= self.pixel_samples_scale
         return j, i, pixel_color
 
-    def log_pixel(self, i: int, j: int):
+    def log_pixel(self, i: cython.int, j: cython.int):
         if i == 0:
             if j == 0:
                 logging.info('Scanlines remaining: %d', self.image_height - j)
             else:
-                current_perf_counter_ns = time.perf_counter_ns()
+                current_perf_counter_ns: cython.int = time.perf_counter_ns()
                 elapsed_perf_counter_ns = current_perf_counter_ns - self.start_perf_counter_ns
-                elapsed_s = elapsed_perf_counter_ns / 1e9
-                s_per_line = elapsed_s / j
-                total_s = s_per_line * self.image_height
-                left_s = total_s - elapsed_s
+                elapsed_s: cython.double = elapsed_perf_counter_ns / 1e9
+                s_per_line: cython.double = elapsed_s / j
+                total_s: cython.double = s_per_line * self.image_height
+                left_s: cython.double = total_s - elapsed_s
                 logging.info(
                     'Scanlines remaining: %d, %02d:%02d < %02d:%02d < %02d:%02d, %.2fs/line',
                     self.image_height - j,
@@ -163,9 +169,9 @@ class Camera:
                 )
 
     def log_done(self):
-        current_perf_counter_ns = time.perf_counter_ns()
-        total_perf_counter_ns = current_perf_counter_ns - self.start_perf_counter_ns
-        total_s = total_perf_counter_ns / 1e9
+        current_perf_counter_ns: cython.int = time.perf_counter_ns()
+        total_perf_counter_ns: cython.int = current_perf_counter_ns - self.start_perf_counter_ns
+        total_s: cython.double = total_perf_counter_ns / 1e9
         logging.info('Done. %02d:%02d', total_s // 60, total_s % 60)
 
     def render(self, world: Hittable, image_file: Path = Path('image.ppm')):
@@ -182,10 +188,10 @@ class Camera:
         self.log_done()
 
     def render_threading(
-        self, world: Hittable, image_file: Path = Path('image.ppm'), num_threads: int = 4
+        self, world: Hittable, image_file: Path = Path('image.ppm'), num_threads: cython.int = 4
     ):
-        task_queue: queue.Queue[tuple[int, int]] = queue.Queue()
-        result_queue: queue.Queue[tuple[int, int, Color]] = queue.Queue()
+        task_queue: queue.Queue[tuple[cython.int, cython.int]] = queue.Queue()
+        result_queue: queue.Queue[tuple[cython.int, cython.int, Color]] = queue.Queue()
 
         def renderer():
             while True:
@@ -243,7 +249,7 @@ class Camera:
 
         self.log_done()
 
-    def render_line(self, j: int, world: Hittable) -> tuple[int, list[Color]]:
+    def render_line(self, j: cython.int, world: Hittable) -> tuple[cython.int, list[Color]]:
         pixel_colors = []
         for i in range(self.image_width):
             *_, pixel_color = self.render_pixel(i, j, world)

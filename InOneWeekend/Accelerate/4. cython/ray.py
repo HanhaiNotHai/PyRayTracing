@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import cython
+
 from vector import Point3, Vector3
 
 
@@ -16,5 +18,5 @@ class Ray:
     def __repr__(self) -> str:
         return f'Ray(origin = {self.origin}, direction = {self.direction})'
 
-    def at(self, t: float) -> Point3:
+    def at(self, t: cython.double) -> Point3:
         return self.origin + t * self.direction

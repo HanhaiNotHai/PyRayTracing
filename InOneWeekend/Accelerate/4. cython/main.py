@@ -44,7 +44,7 @@ def main():
                     world.add(Sphere(center, 0.2, sphere_material))
                 elif choose_mat < 0.95:
                     # metal
-                    albedo = Color.random(0.5, 1)
+                    albedo = Color.random(0.5, 1.0)
                     fuzz = random.uniform(0.5, 1)
                     sphere_material = Metal(albedo, fuzz)
                     world.add(Sphere(center, 0.2, sphere_material))
@@ -64,15 +64,15 @@ def main():
 
     cam = Camera(
         aspect_ratio=16 / 9,
-        image_width=320,
+        image_width=160,
         samples_per_pixel=10,
         max_depth=5,
-        vfov=20,
+        vfov=20.0,
         lookfrom=Point3(13, 2, 3),
         lookat=Point3(0, 0, 0),
         vup=Vector3(0, 1, 0),
         defocus_angle=0.6,
-        focus_dist=10,
+        focus_dist=10.0,
     )
 
     cam.render_concurrent(world, image_file, max_workers=20)

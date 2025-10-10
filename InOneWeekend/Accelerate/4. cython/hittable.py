@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+import cython
+
 from interval import Interval
 from material import Material
 from ray import Ray
 from vector import Point3, Vector3, dot
 
 
+@cython.cclass
 class HitRecord:
 
     def __init__(
@@ -15,14 +18,14 @@ class HitRecord:
         p: Point3 | None = None,
         normal: Vector3 | None = None,
         mat: Material | None = None,
-        t: float | None = None,
-        front_face: bool | None = None,
+        t: cython.double = 0.0,
+        front_face: bool = False,
     ):
         self.p = p if p is not None else Point3()
         self.normal = normal if normal is not None else Vector3()
         self.mat = mat if mat is not None else Material()
-        self.t = t if t is not None else 0
-        self.front_face = front_face if front_face is not None else False
+        self.t: cython.double = t
+        self.front_face = front_face
 
     def set_face_normal(self, r: Ray, outward_normal: Vector3):
         '''

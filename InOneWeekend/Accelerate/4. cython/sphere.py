@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import math
+import cython
+from cython.cimports.libc.math import sqrt
 
 from hittable import HitRecord, Hittable
 from interval import Interval
@@ -11,25 +12,25 @@ from vector import Point3, dot
 
 class Sphere(Hittable):
 
-    def __init__(self, center: Point3, radius: float, mat: Material):
+    def __init__(self, center: Point3, radius: cython.double, mat: Material):
         self.center = center
-        self.radius = max(0, radius)
+        self.radius: cython.double = max(0., radius)
         self.mat = mat
 
-    def hit(self, r: Ray, ray_t: Interval, rec: HitRecord) -> bool:
+    def hit(self, r: Ray, ray_t: Interval, rec: HitRecord) -> cython.bint:
         oc = self.center - r.origin
-        a = r.direction.length_squared()
-        h = dot(r.direction, oc)
-        c = oc.length_squared() - self.radius * self.radius
+        a: cython.double = r.direction.length_squared()
+        h: cython.double = dot(r.direction, oc)
+        c: cython.double = oc.length_squared() - self.radius * self.radius
 
-        discriminant = h * h - a * c
-        if discriminant < 0:
+        discriminant: cython.double = h * h - a * c
+        if discriminant < 0.:
             return False
 
-        sqrtd = math.sqrt(discriminant)
+        sqrtd: cython.double = sqrt(discriminant)
 
         # Find the nearest root that lies in the acceptable range.
-        root = (h - sqrtd) / a
+        root: cython.double = (h - sqrtd) / a
         if not ray_t.surrounds(root):
             root = (h + sqrtd) / a
             if not ray_t.surrounds(root):
