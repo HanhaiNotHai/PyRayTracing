@@ -1,0 +1,171 @@
+from __future__ import annotations
+
+import random
+
+import cython
+from cython.cimports.libc.math import abs, sqrt
+
+
+@cython.cclass
+class Vector3:
+
+    def __init__(self, x: cython.double = 0.0, y: cython.double = 0.0, z: cython.double = 0.0):
+        self.x: cython.double = x
+        self.y: cython.double = y
+        self.z: cython.double = z
+
+    def set(self, x: cython.double = 0.0, y: cython.double = 0.0, z: cython.double = 0.0):
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def __repr__(self) -> str:
+        return f'Vector3({self.x}, {self.y}, {self.z})'
+
+    def __getitem__(self, i: cython.int) -> cython.double:
+        if i == 0:
+            return self.x
+        if i == 1:
+            return self.y
+        if i == 2:
+            return self.z
+        raise IndexError('Index out of range for Vector3')
+
+    def __setitem__(self, i: cython.int, e: cython.double):
+        if i == 0:
+            self.x = e
+        elif i == 1:
+            self.y = e
+        elif i == 2:
+            self.z = e
+        raise IndexError('Index out of range for Vector3')
+
+    def __neg__(self):
+        return Vector3(-self.x, -self.y, -self.z)
+
+    def __add__(self, other: Vector3) -> Vector3:
+        return Vector3(self.x + other.x, self.y + other.y, self.z + other.z)
+
+    def __iadd__(self, other: Vector3) -> Vector3:
+        self.x += other.x
+        self.y += other.y
+        self.z += other.z
+        return self
+
+    def __sub__(self, other: Vector3) -> Vector3:
+        return Vector3(self.x - other.x, self.y - other.y, self.z - other.z)
+
+    def __isub__(self, other: Vector3) -> Vector3:
+        self.x -= other.x
+        self.y -= other.y
+        self.z -= other.z
+        return self
+
+    def __mul__(self, other: cython.double | Vector3) -> Vector3:
+        if isinstance(other, Vector3):
+            return Vector3(self.x * other.x, self.y * other.y, self.z * other.z)
+        return Vector3(self.x * other, self.y * other, self.z * other)
+
+    def __rmul__(self, other: cython.double) -> Vector3:
+        return self * other
+
+    def __imul__(self, other: cython.double | Vector3) -> Vector3:
+        if isinstance(other, Vector3):
+            self.x *= other.x
+            self.y *= other.y
+            self.z *= other.z
+            return self
+        self.x *= other
+        self.y *= other
+        self.z *= other
+        return self
+
+    def __truediv__(self, other: cython.double) -> Vector3:
+        return self * (1 / other)
+
+    def __itruediv__(self, other: cython.double) -> Vector3:
+        return self.__imul__(1 / other)
+
+    def length_squared(self) -> cython.double:
+        return self.x * self.x + self.y * self.y + self.z * self.z
+
+    def length(self) -> cython.double:
+        return sqrt(self.length_squared())
+
+    def dot(self, other: Vector3) -> cython.double:
+        return self.x * other.x + self.y * other.y + self.z * other.z
+
+    def cross(self, other: Vector3) -> Vector3:
+        return Vector3(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
+
+    def unit_vector(self) -> Vector3:
+        return self / self.length()
+
+    @staticmethod
+    def random(min_val: cython.double = 0.0, max_val: cython.double = 1.0) -> Vector3:
+        return Vector3(
+            random.uniform(min_val, max_val),
+            random.uniform(min_val, max_val),
+            random.uniform(min_val, max_val),
+        )
+
+    def near_zero(self) -> cython.bint:
+        '''Return True if the vector is close to zero in all dimensions.'''
+        s = 1e-8
+        return abs(self.x) < s and abs(self.y) < s and abs(self.z) < s
+
+
+def dot(u: Vector3, v: Vector3) -> cython.double:
+    return u.x * v.x + u.y * v.y + u.z * v.z
+
+
+def cross(u: Vector3, v: Vector3) -> Vector3:
+    return Vector3(
+        u.y * v.z - u.z * v.y,
+        u.z * v.x - u.x * v.z,
+        u.x * v.y - u.y * v.x,
+    )
+
+
+def unit_vector(v: Vector3) -> Vector3:
+    return v / v.length()
+
+
+def random_in_unit_disk() -> Vector3:
+    while True:
+        p = Vector3(random.uniform(-1.0, 1.0), random.uniform(-1.0, 1.0), 0.0)
+        if p.length_squared() < 1.0:
+            return p
+
+
+def random_unit_vector() -> Vector3:
+    while True:
+        p = Vector3.random(-1.0, 1.0)
+        lensq = p.length_squared()
+        if 1e-160 < lensq <= 1.0:
+            return p / sqrt(lensq)
+
+
+def random_on_hemisphere(normal: Vector3) -> Vector3:
+    on_unit_sphere = random_unit_vector()
+    if dot(on_unit_sphere, normal) > 0.0:  # In the same hemisphere as the normal
+        return on_unit_sphere
+    return -on_unit_sphere
+
+
+def reflect(v: Vector3, n: Vector3) -> Vector3:
+    return v - 2.0 * dot(v, n) * n
+
+
+def refract(uv: Vector3, n: Vector3, etai_over_etat: float) -> Vector3:
+    cos_theta = min(dot(-uv, n), 1.0)
+    r_out_perp = etai_over_etat * (uv + cos_theta * n)
+    r_out_parallel = -sqrt(abs(1.0 - r_out_perp.length_squared())) * n
+    return r_out_perp + r_out_parallel
+
+
+Point3 = Vector3
