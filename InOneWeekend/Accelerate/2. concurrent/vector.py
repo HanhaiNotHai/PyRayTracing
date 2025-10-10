@@ -96,9 +96,7 @@ class Vector3:
         return self / self.length()
 
     @staticmethod
-    def random(min_val: float | None = None, max_val: float | None = None) -> Vector3:
-        if min_val is None and max_val is None:
-            return Vector3(random.random(), random.random(), random.random())
+    def random(min_val: float = 0, max_val: float = 1) -> Vector3:
         return Vector3(
             random.uniform(min_val, max_val),
             random.uniform(min_val, max_val),
